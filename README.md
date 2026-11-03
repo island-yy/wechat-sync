@@ -1,93 +1,93 @@
 # wechat-sync
 
-在 macOS 和 Windows 上同步、搜索和查询自己的本地微信聊天记录。既可以独立运行，也可以作为 Agent Skill 使用，不依赖 Violoop。
+Sync, search, and query your own local WeChat messages on macOS and Windows. Use it as a standalone tool or an Agent Skill, independently of Violoop.
 
-支持关键词、联系人、会话及时间筛选，持续增量同步、本机 HTTP API 和 JSONL 导出。仅处理当前电脑已落盘的消息；不发送消息，不下载或解析图片、语音、视频附件。
+Features include keyword, contact, conversation, and time filters, continuous incremental sync, a local HTTP API, and JSONL export. The tool reads messages already stored on your computer. It does not send messages or download or parse image, voice, or video attachments.
 
-## 平台与兼容范围
+## Platform support
 
-| 平台 | 初始化要求 | 已实测 |
+| Platform | Initialization requirements | Tested environment |
 | --- | --- | --- |
-| macOS | macOS 11+、微信 4.1 及以上、Python 3.9+、Apple Command Line Tools | Apple Silicon，微信 4.1.13 |
-| Windows | Windows 10/11 x64、x64 微信 4.x、64 位 Python 3.11+ | Windows 11 x64，Python 3.13.17，微信 4.1.13.63 |
+| macOS | macOS 11+, WeChat 4.1 or later, Python 3.9+, Apple Command Line Tools | Apple Silicon, WeChat 4.1.13 |
+| Windows | Windows 10/11 x64, x64 WeChat 4.x, 64-bit Python 3.11+ | Windows 11 x64, Python 3.13.17, WeChat 4.1.13.63 |
 
-Mac 随包数据库组件包含 arm64 和 x86_64，Intel 实机尚未验收。Windows 不支持 ARM64 或微信 3.x 初始化。上述范围不代表所有版本都已测试；微信改变密钥派生或数据库结构后可能需要适配。
+The bundled macOS database library includes arm64 and x86_64 builds, but has not been validated on a physical Intel Mac. Initialization on Windows ARM64 or WeChat 3.x is not supported. Not every version within these ranges has been tested; changes to WeChat key derivation or database schemas may require updates.
 
-## 下载与初始化
+## Download and initialize
 
 ```sh
 git clone https://github.com/island-yy/wechat-sync.git
 cd wechat-sync
 ```
 
-也可以使用 GitHub 的 Download ZIP，解压后进入仓库目录。所有命令均在安装微信的电脑上，以当前登录用户执行。
+Alternatively, use GitHub's **Download ZIP** option, extract the archive, and open the repository directory. Run all commands on the computer where WeChat is installed, as the currently signed-in user.
 
 ### macOS
 
-首次使用，在 Terminal 中运行：
+For first-time setup, run this command in Terminal:
 
 ```sh
-open scripts/开始持续同步.command
+/usr/bin/python3 scripts/wechat_sync.py init
 ```
 
-选择本人的微信账号，等待“捕获已就绪”后，在临时微信副本中扫码登录，按系统提示允许开发者工具访问。成功后密钥保存到登录钥匙串，同步在后台运行。只重签临时副本，不修改正式微信，不需要关闭 SIP。
+Select your own WeChat account, wait for the capture-ready message, then scan the login QR code in the temporary WeChat copy. Allow developer tool access when macOS prompts you. After successful initialization, the key is stored in your login Keychain and sync runs in the background. Only the temporary copy is re-signed; your installed WeChat app is unchanged, and SIP can remain enabled.
 
 ### Windows
 
-先安装 64 位 Python 3.11+，再从 PowerShell 运行：
+Install 64-bit Python 3.11+ first, then run these commands in PowerShell:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\setup.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\run.ps1 init
 ```
 
-安装脚本只在仓库内创建 `.venv` 并下载固定版本依赖。按提示从托盘完全退出微信，再从桌面打开；等待“捕获已就绪”后登录。验证成功后密钥保存到当前用户的 Windows 凭据管理器。
+The setup script creates a `.venv` inside the repository and downloads pinned dependencies. When prompted, fully exit WeChat through its system tray menu, then reopen it from your desktop. Wait for the capture-ready message before logging in. After validation, the key is stored in the current user's Windows Credential Manager.
 
-自定义微信数据目录、权限和故障处理见 [Windows 接入](references/windows.md)。
+See the [Windows guide](references/windows.md) for custom data directories, permissions, and troubleshooting.
 
-## 查询与管理
+## Query and manage
 
-Mac 使用以下命令；Windows 将 `python3 scripts/wechat_sync.py` 替换为 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\run.ps1`：
+Use the following commands on macOS. On Windows, replace `python3 scripts/wechat_sync.py` with `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\run.ps1`:
 
 ```sh
 python3 scripts/wechat_sync.py status --json
-python3 scripts/wechat_sync.py search '会议' --limit 20
-python3 scripts/wechat_sync.py contacts '名字'
-python3 scripts/wechat_sync.py conversations '项目群'
-python3 scripts/wechat_sync.py messages --conversation '查询返回的username' --since 2026-10-01
+python3 scripts/wechat_sync.py search 'meeting' --limit 20
+python3 scripts/wechat_sync.py contacts 'Alice'
+python3 scripts/wechat_sync.py conversations 'Project'
+python3 scripts/wechat_sync.py messages --conversation 'USERNAME_FROM_QUERY' --since 2026-10-01
 python3 scripts/wechat_sync.py changes --after 0 --limit 50
 python3 scripts/wechat_sync.py export-jsonl
 python3 scripts/wechat_sync.py stop
 python3 scripts/wechat_sync.py start
 ```
 
-查询返回 JSON，服务停止后仍可查询已收集结果。`start` 复用保存的密钥，重复启动保持单实例；仅在密钥失效或更换账号时重新初始化。
+Queries return JSON and remain available for collected messages after the service stops. `start` reuses the saved key, and repeated starts preserve a single instance. Reinitialize only when the key becomes invalid or you switch accounts.
 
-默认 HTTP API 监听 `127.0.0.1:8765`，所有接口要求 Bearer token。参数、鉴权和增量消费见 [接口说明](references/api.md)，字段和数据边界见 [数据与排错](references/data.md)。
+The HTTP API listens on `127.0.0.1:8765` by default. All endpoints require a Bearer token. See the [API reference](references/api.md) for parameters, authentication, and incremental consumption, and [Data and troubleshooting](references/data.md) for fields and coverage limits.
 
-## 作为 Agent Skill 使用
+## Use as an Agent Skill
 
-将完整仓库放入所用 Agent 的技能目录，保留 `SKILL.md`、`scripts/`、`references/` 和原生组件。让模型读取 [SKILL.md](SKILL.md)，即可按平台选择初始化和查询入口。
+Place the complete repository in your agent's skills directory, keeping `SKILL.md`, `scripts/`, `references/`, and the native library together. Have the model read [SKILL.md](SKILL.md) to select the appropriate initialization and query commands for the platform.
 
-首次登录和系统授权由用户完成。后续查询与同步复用已有凭据；模型无需读取或接收数据库密钥。
+The user completes the initial login and system permission prompts. Subsequent queries and sync reuse stored credentials; the model does not need to read or receive the database key.
 
-## 数据存储
+## Data storage
 
-- Mac：`~/Library/Application Support/WeChat-Export/`
-- Windows：`%LOCALAPPDATA%\WeChat-Export\`
+- macOS: `~/Library/Application Support/WeChat-Export/`
+- Windows: `%LOCALAPPDATA%\WeChat-Export\`
 
-数据库密钥存放在系统凭据库，配置文件不保存密钥。微信数据库通过原生 SQLCipher 只读连接访问；查询结果保存在本机，不上传聊天内容。HTTP token 与数据库密钥相互独立。
+Database keys are stored in the system credential store, not in configuration files. WeChat databases are accessed through native SQLCipher read-only connections. Query results stay on your computer, and chat content is not uploaded. The HTTP token is separate from the database key.
 
-## 测试
+## Tests
 
-在仓库目录运行合成加密数据测试，不读取真实微信或已保存的真实凭据：
+Run the test suite from the repository directory. It uses synthetic encrypted data and does not access your real WeChat data or saved credentials:
 
 ```sh
 python3 -B -m unittest discover -s scripts/tests -v
 ```
 
-Windows 使用 `.venv\Scripts\python.exe` 代替 `python3`。缺少相应平台或可选测试依赖时，相关测试会跳过。已完成 Windows 原生测试及真实登录、手机新消息增量、中文搜索、凭据复用、单实例和停止测试；完整范围见 [数据与排错](references/data.md)。
+On Windows, replace `python3` with `.venv\Scripts\python.exe`. Tests requiring an unavailable platform or optional dependency are skipped. Validation includes native Windows tests, real login, incremental collection of new messages sent from a phone, Chinese keyword search, credential reuse, single-instance startup, and shutdown. See [Data and troubleshooting](references/data.md) for the full validation scope.
 
-## 许可证与来源
+## License and sources
 
-本项目脚本和文档采用 [MIT License](LICENSE)。第三方代码与依赖保留各自许可证，来源及完整声明见 [第三方声明](scripts/THIRD_PARTY_NOTICES.md)。Mac 数据库组件的源码地址、固定版本、构建参数和校验值见 [BUILD.json](scripts/native/BUILD.json)。
+Project scripts and documentation are released under the [MIT License](LICENSE). Third-party code and dependencies retain their respective licenses; see [Third-party notices](scripts/THIRD_PARTY_NOTICES.md) for sources and full notices. Source URLs, pinned versions, build parameters, and checksums for the macOS database library are recorded in [BUILD.json](scripts/native/BUILD.json).
