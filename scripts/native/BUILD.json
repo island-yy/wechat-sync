@@ -1,0 +1,33 @@
+{
+  "sources": {
+    "sqlcipher": {
+      "version": "4.19.0",
+      "commit": "c4b275a47932888216bade83aff2bbc73df0ff85",
+      "url": "https://codeload.github.com/sqlcipher/sqlcipher/tar.gz/refs/tags/v4.19.0",
+      "sha256": "7075f96cbabe45b4ecfc2e6b1745a625f856f695b0827a5506ce9ed85b906aa0"
+    },
+    "zstd": {
+      "version": "1.5.7",
+      "commit": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+      "url": "https://codeload.github.com/facebook/zstd/tar.gz/refs/tags/v1.5.7",
+      "sha256": "37d7284556b20954e56e1ca85b80226768902e2edabd3b649e9e72c0c9012ee3"
+    }
+  },
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "macos_minimum": "11.0",
+  "defines": [
+    "SQLITE_HAS_CODEC",
+    "SQLCIPHER_CRYPTO_CC",
+    "SQLITE_EXTRA_INIT=sqlcipher_extra_init",
+    "SQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown",
+    "SQLITE_TEMP_STORE=2",
+    "SQLITE_THREADSAFE=1",
+    "SQLITE_ENABLE_FTS5",
+    "SQLITE_ENABLE_COLUMN_METADATA",
+    "SQLITE_OMIT_LOAD_EXTENSION"
+  ],
+  "sha256": "3bab239abebb2dfde956f5b9ccd9ece6e1aa3300abd6933572a08b57dd6cf709"
+}

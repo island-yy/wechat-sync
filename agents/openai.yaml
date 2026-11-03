@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信同步与查询"
+  short_description: "同步本机微信消息，按关键词、联系人和时间搜索，提供本机 HTTP API"
+  default_prompt: "用 $wechat-sync 帮我查询本机微信消息，并根据需要检查同步状态。"
