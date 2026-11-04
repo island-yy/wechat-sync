@@ -70,11 +70,15 @@ def find_app(explicit):
     raise ExportError("没有找到微信，请先安装桌面版微信，或用 --app 指定位置。")
 
 
-def app_pids(executable):
+def app_pids(executable, *, app=None):
     result = subprocess.run(["/usr/bin/pgrep", "-x", executable], capture_output=True, text=True)
     if result.returncode not in (0, 1):
         raise ExportError("无法检查微信进程。")
-    return [int(p) for p in result.stdout.split()]
+    pids = [int(p) for p in result.stdout.split()]
+    if app is not None:
+        prefix = str(Path(app).resolve()) + "/"
+        pids = [pid for pid in pids if process_path(pid).startswith(prefix)]
+    return pids
 
 
 def process_path(pid):
@@ -82,27 +86,35 @@ def process_path(pid):
     return result.stdout.strip()
 
 
-def wait_closed(executable, timeout=15):
+def wait_closed(executable, timeout=15, *, app=None):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if not app_pids(executable):
+        if not app_pids(executable, app=app):
             return True
         time.sleep(0.25)
-    return not app_pids(executable)
+    return not app_pids(executable, app=app)
 
 
 def quit_app(path, executable):
-    if not app_pids(executable):
+    pids = app_pids(executable, app=path)
+    if not pids:
         return
-    # Request a normal application quit. Never kill an application or its helpers.
-    subprocess.run([
-        "/usr/bin/osascript", "-e", "on run argv",
-        "-e", "tell application (item 1 of argv) to quit", "-e", "end run", str(path),
-    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=25)
-    if wait_closed(executable):
+    # Both copies share a bundle ID. Target the live process so LaunchServices
+    # cannot route the quit request to the other copy or launch an application.
+    script = '''use framework "AppKit"
+on run argv
+    set targetPid to (item 1 of argv) as integer
+    set targetApp to current application's NSRunningApplication's runningApplicationWithProcessIdentifier:targetPid
+    if targetApp is missing value then return
+    targetApp's terminate()
+end run'''
+    for pid in pids:
+        subprocess.run(["/usr/bin/osascript", "-e", script, str(pid)],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=25)
+    if wait_closed(executable, app=path):
         return
     input("请在微信中按 ⌘Q 退出（不要只关窗口），然后按回车：")
-    if not wait_closed(executable, 5):
+    if not wait_closed(executable, 5, app=path):
         raise ExportError("微信尚未退出；已停止，未复制正在写入的数据库。")
 
 
@@ -327,6 +339,7 @@ def main():
     workspace, debug_app, lock = None, None, None
     original_running = False
     app, info = None, None
+    result = 1
     try:
         say(f"微信本地数据库导出助手 {VERSION}\n")
         app, info = preflight(args)
@@ -356,7 +369,7 @@ def main():
         input("确认这是你自己的账号，准备开始时按回车；取消请按 Ctrl+C：")
         executable = info["CFBundleExecutable"]
         account = select_account(args.db_root)
-        original_running = bool(app_pids(executable))
+        original_running = bool(app_pids(executable, app=app))
         quit_app(app, executable)
         workspace = Path(tempfile.mkdtemp(prefix="run-", dir=cache))
         debug_app = make_debug_copy(app, workspace)
@@ -368,43 +381,51 @@ def main():
             try:
                 configure(account, secret, home=(args.sync_home or HOME).expanduser().resolve())
                 original_running = True
-                say("持续同步初始化完成；正在退出临时副本并打开正常微信。")
-                return 0
+                say("账号配置已保存；正在退出临时副本并打开正常微信。")
+                result = 0
             finally:
                 secret = None
-        say("正在正常退出临时微信，以生成一致的数据库副本……")
-        quit_app(debug_app, executable)
-        if app_pids(executable):
-            raise ExportError("微信仍在运行，无法创建静态快照。")
-        snapshot = workspace / "snapshot"
-        say("正在复制本地数据库……")
-        snapshot_databases(account, snapshot)
-        try:
-            return export_all(snapshot, output, secret, info.get("CFBundleShortVersionString", "未知"))
-        finally:
-            secret = None  # Python cannot guarantee secure erasure of immutable bytes.
+        else:
+            say("正在正常退出临时微信，以生成一致的数据库副本……")
+            quit_app(debug_app, executable)
+            if app_pids(executable):
+                raise ExportError("微信仍在运行，无法创建静态快照。")
+            snapshot = workspace / "snapshot"
+            say("正在复制本地数据库……")
+            snapshot_databases(account, snapshot)
+            try:
+                result = export_all(snapshot, output, secret, info.get("CFBundleShortVersionString", "未知"))
+            finally:
+                secret = None  # Python cannot guarantee secure erasure of immutable bytes.
     except (ExportError, OSError, subprocess.TimeoutExpired) as exc:
         say(f"\n未完成：{exc}")
-        return 1
+        result = 1
     except (KeyboardInterrupt, EOFError):
         say("\n已取消，正在清理本次临时文件……")
-        return 130
+        result = 130
     finally:
         safe_to_remove = True
         if debug_app and info:
             executable = info["CFBundleExecutable"]
-            if any(process_path(pid).startswith(str(debug_app) + "/") for pid in app_pids(executable)):
+            if app_pids(executable, app=debug_app):
                 try:
                     quit_app(debug_app, executable)
                 except (Exception, KeyboardInterrupt):
                     safe_to_remove = False
+                    result = 1
                     say(f"临时微信仍在运行，请手动退出后删除：{workspace}")
         if workspace and safe_to_remove:
             shutil.rmtree(workspace, ignore_errors=True)
         if original_running and app and safe_to_remove:
-            subprocess.run(["/usr/bin/open", str(app)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if not app_pids(info["CFBundleExecutable"], app=app):
+                opened = subprocess.run(["/usr/bin/open", "-n", str(app)],
+                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if opened.returncode:
+                    result = 1
+                    say("未能重新打开正式微信，请手动从应用程序目录启动。")
         if lock:
             lock.close()
+    return result
 
 
 if __name__ == "__main__":

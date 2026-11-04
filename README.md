@@ -8,7 +8,7 @@ Features include keyword, contact, conversation, and time filters, continuous in
 
 | Platform | Initialization requirements | Tested environment |
 | --- | --- | --- |
-| macOS | macOS 11+, WeChat 4.1 or later, Python 3.9+, Apple Command Line Tools | Apple Silicon, WeChat 4.1.13 |
+| macOS | macOS 11+, WeChat 4.1 or later, Python 3.9+, Apple Command Line Tools | Apple Silicon, WeChat 4.1.13 and 4.1.15 |
 | Windows | Windows 10/11 x64, x64 WeChat 4.x, 64-bit Python 3.11+ | Windows 11 x64, Python 3.13.17, WeChat 4.1.13.63 |
 
 The bundled macOS database library includes arm64 and x86_64 builds, but has not been validated on a physical Intel Mac. Initialization on Windows ARM64 or WeChat 3.x is not supported. Not every version within these ranges has been tested; changes to WeChat key derivation or database schemas may require updates.

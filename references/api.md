@@ -20,6 +20,10 @@
 
 `search`、`messages`、`contacts`、`conversations`、`message`、`changes` 输出 JSON。查询失败返回非零退出码和错误提示。HTTP 参数对应同名命令行选项；`q` 对应位置参数，例如 `search "关键词"`。`stop` 保留数据和进度；`restart --port 8766` 更换端口并保存配置。`--home /路径` 可指定独立配置目录。
 
+`export-jsonl --output /绝对路径/messages.jsonl` 指定导出成品位置，父目录必须先创建，已有文件不会覆盖。未传 `--output` 时，命令行默认导出到采集结果数据库旁。
+
+Mac 一次性原库导出可用 `wechat_export.py --output /绝对路径/导出目录` 指定位置，目标目录必须尚不存在，由脚本创建。
+
 ## HTTP
 
 默认地址 `http://127.0.0.1:8765`，实际地址和 token 文件路径可用 `api-info` 查看。所有接口仅支持 GET，需要 `Authorization: Bearer <token>`。token 自动生成，文件权限为 0600，与微信数据库密钥相互独立。不支持浏览器跨域请求；服务仅监听本机回环地址。

@@ -16,7 +16,7 @@ description: "同步、搜索和查询用户自己的本地微信聊天记录，
 | macOS | 微信 4.1 及以上；不支持微信 3.x、4.0 初始化 | macOS 11+、Python 3.9+、Apple Command Line Tools，无需 pip 或 Homebrew |
 | Windows | x64 微信 4.x；不支持微信 3.x、Windows ARM64 初始化 | Windows 10/11 x64、64 位 Python 3.11+；首次使用先按 [Windows 接入](references/windows.md) 安装依赖 |
 
-已实测 Mac 微信 4.1.13，以及 Windows 11 x64 微信 4.1.13.63。没有锁定这些具体小版本，但范围内其他版本仍可能需要适配密钥派生或数据库结构；不能仅凭版本号宣称已验证兼容。完整验证范围见 [数据与排错](references/data.md)。
+已实测 Mac 微信 4.1.13、4.1.15，以及 Windows 11 x64 微信 4.1.13.63。没有锁定这些具体小版本，但范围内其他版本仍可能需要适配密钥派生或数据库结构；不能仅凭版本号宣称已验证兼容。完整验证范围见 [数据与排错](references/data.md)。
 
 ## 查询与操作入口
 
@@ -47,6 +47,6 @@ Windows 首次使用，按 [Windows 接入](references/windows.md) 安装依赖�
 
 ## 数据与排错
 
-数据位于 Mac 的 `~/Library/Application Support/WeChat-Export/` 或 Windows 的 `%LOCALAPPDATA%\WeChat-Export\`，默认约每 3 秒检查一次。仅包含当前电脑已落盘的消息；不含图片、语音、视频附件。查询范围之外的聊天、HTTP token、数据库密钥不写入日志或回复，不上传结果。
+同步缓存和配置位于 Mac 的 `~/Library/Application Support/WeChat-Export/` 或 Windows 的 `%LOCALAPPDATA%\WeChat-Export\`，默认约每 3 秒检查一次。仅包含当前电脑已落盘的消息；不含图片、语音、视频附件。查询范围之外的聊天、HTTP token、数据库密钥不写入日志或回复，不上传结果。
 
 两端均支持 `export-jsonl`。Mac 另支持一次性原库导出：先停止同步，再打开 `scripts/开始导出.command`。同步异常、字段含义和来源格式见 [数据与排错](references/data.md)。
