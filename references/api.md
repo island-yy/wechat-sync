@@ -22,6 +22,8 @@
 
 `export-jsonl --output /绝对路径/messages.jsonl` 指定导出成品位置，父目录必须先创建，已有文件不会覆盖。未传 `--output` 时，命令行默认导出到采集结果数据库旁。
 
+在 Violoop 中，用户未指定位置时，使用当前运行时提醒提供的 **AI Workspace**，导出到其 `wechat-exports/<时间戳>/messages.jsonl`。先创建父目录，时间戳避免冒号，路径作为单独参数传入；Windows 的 PowerShell 示例见 [Windows 接入](windows.md)。核对实际文件位于工作区后，再向用户报告“文件”页面中的相对路径。同步缓存、配置和凭据仍使用各平台的私有存储位置。
+
 Mac 一次性原库导出可用 `wechat_export.py --output /绝对路径/导出目录` 指定位置，目标目录必须尚不存在，由脚本创建。
 
 ## HTTP

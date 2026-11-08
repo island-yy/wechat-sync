@@ -41,6 +41,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1 stop
 
 默认 HTTP 接口为 `http://127.0.0.1:8765`，与 Mac 相同，鉴权与参数见 [接口说明](api.md)。Windows 同样使用原生 SQLCipher 只读连接和 SQLite WAL 锁，不通过反复整库解密模拟实时读取。
 
+## 导出到 Violoop 文件工作区
+
+用户指定输出位置时优先使用该位置。在 Violoop 中未指定时，从当前运行时提醒读取 AI Workspace 的 Windows 绝对路径；不要用设备端目录或自行假定工作区位置。将下面的占位值替换为该路径，在技能根目录运行：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$workspace = '<当前 AI Workspace 的 Windows 绝对路径>'
+$exportRoot = Join-Path -Path $workspace -ChildPath 'wechat-exports'
+New-Item -ItemType Directory -Path $exportRoot -Force | Out-Null
+$exportDir = Join-Path -Path $exportRoot -ChildPath (Get-Date -Format 'yyyyMMdd-HHmmss-fff')
+New-Item -ItemType Directory -Path $exportDir | Out-Null
+$output = Join-Path -Path $exportDir -ChildPath 'messages.jsonl'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\run.ps1 export-jsonl --output $output
+if ($LASTEXITCODE -ne 0) { throw '微信消息导出失败，请检查命令结果。' }
+Get-Item -LiteralPath $output | Select-Object FullName, Length
+```
+
+变量中的完整路径作为一个参数传入，支持空格和中文。时间戳不含 Windows 文件名禁止的冒号；同名任务目录存在时停止，已有导出文件也不会覆盖。仅查询已有采集结果即可导出，无需为此重新登录或初始化。
+
+确认导出成功且文件位于当前工作区后，向用户给出 `wechat-exports/<时间戳>/messages.jsonl`，说明可从 Violoop 的“文件”页面查看。同步数据库、配置和 token 继续位于 `%LOCALAPPDATA%\WeChat-Export\`，密钥留在 Windows 凭据管理器。
+
 ## 排错与验证
 
 - 找不到账号：确认 `--db-root` 是当前账号的 `xwechat_files` 根目录，且微信已落盘消息。

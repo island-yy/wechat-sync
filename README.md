@@ -71,6 +71,8 @@ Place the complete repository in your agent's skills directory, keeping `SKILL.m
 
 The user completes the initial login and system permission prompts. Subsequent queries and sync reuse stored credentials; the model does not need to read or receive the database key.
 
+For exports made through Violoop, honor the user's chosen output location. When none is specified, use the current runtime's **AI Workspace** on the paired PC and export to `wechat-exports/<timestamp>/messages.jsonl` so the file appears in the Files view. Create the parent directory first, use a Windows-safe timestamp such as `yyyyMMdd-HHmmss-fff`, and pass the complete output path as one argument. Verify the resulting file before reporting its relative path. See the [Windows guide](references/windows.md) for a PowerShell example. Sync data, configuration, tokens, and database keys remain in their platform-specific storage locations. Standalone use keeps the CLI's default output location unless `--output` is supplied.
+
 ## Data storage
 
 - macOS: `~/Library/Application Support/WeChat-Export/`
